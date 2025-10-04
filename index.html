@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>3yoni3Leek</title>
+  <title>3yoni3Leek2</title>
   <style>
     :root{
       --panel: rgba(12,14,18,0.95);
@@ -40,13 +40,13 @@
       border-radius: 8px; margin-bottom: 8px; display:block;
     }
     .brand{ font-size:22px; font-weight:800; letter-spacing:.4px; }
-
     .list{ background: var(--panel2); padding: 10px; }
     .row{
       height: var(--row-h); line-height: var(--row-h); padding: 0 12px; margin-bottom: 6px;
       border-radius: 6px; background: var(--row); border: 1px solid transparent;
       display:flex; align-items:center; justify-content:space-between; font-size: 14px;
       transition: background .12s, border-color .12s, box-shadow .12s;
+      cursor: pointer;
     }
     .row:last-child{ margin-bottom:0; }
     .row .label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -60,23 +60,23 @@
       display:flex; flex-direction:column;
     }
     .overlay.open{ transform: translateX(0); }
-    .ov-head{ padding:12px 14px; display:flex; justify-content:space-between; }
+    .ov-head{ padding:12px 14px; display:flex; justify-content:space-between; background: var(--panel2); }
     .ov-title{ font-weight:700; }
-    .ov-body{ padding:12px; color:var(--muted); }
+    .ov-body{ padding:12px; flex:1; overflow-y:auto; }
   </style>
 </head>
 <body>
   <div id="menu" class="dock hidden" tabindex="-1" aria-hidden="true">
-<div class="header" style="overflow:hidden; border-radius:10px 10px 0 0;">
-  <img src="./banner.png?v=2" class="banner" alt="hazetomika" onerror="this.style.display='none'">
-  <div class="brand" id="brand">Discord.gg/D99</div>
-</div>
+    <div class="header" style="overflow:hidden; border-radius:10px 10px 0 0;">
+      <img src="./banner.png?v=2" class="banner" alt="hazetomika" onerror="this.style.display='none'">
+      <div class="brand" id="brand">Discord.gg/D99</div>
+    </div>
 
     <div class="list" id="list"></div>
 
     <div class="overlay" id="overlay">
       <div class="ov-head"><div class="ov-title" id="ovTitle">Submenu</div></div>
-      <div class="ov-body" id="ovBody">Itt majd az adott kategória beállításai lesznek.</div>
+      <div class="ov-body" id="ovBody"></div>
     </div>
   </div>
 
@@ -84,12 +84,22 @@
     const MODEL = {
       title: 'Discord.gg/D99',
       items: [
-        {label:'Player', hasSub:true, hint:'›'},
-        {label:'Vehicle', hasSub:true, hint:'›'},
-        {label:'Add', hasSub:true, hint:'›'},
-        {label:'Settings', hasSub:true, hint:'›'}
+        {label:'Player', hasSub:true, hint:'›', items:[
+          {label:'Super Jump', action:'superJump'},
+          {label:'Fast Run', action:'fastRun'},
+          {label:'Noclip (F2)', action:'noclip'},
+          {label:'Remove Weapons', action:'removeWeapons'}
+        ]},
+        {label:'Vehicle', hasSub:true, hint:'›', items:[
+          {label:'Neek v1', action:'neekV1'},
+          {label:'Neek v2', action:'neekV2'},
+          {label:'Sucking', action:'sucking'},
+          {label:'Pee', action:'pee'}
+        ]},
+        {label:'Add', hasSub:true, hint:'›', items:[]},
+        {label:'Settings', hasSub:true, hint:'›', items:[]}
       ],
-      index: 0, submenuOpen: false
+      index: 0, submenuOpen: false, currentSub: null
     };
 
     const menu = document.getElementById('menu');
@@ -111,13 +121,58 @@
         list.appendChild(row);
       });
     }
-
+    
     function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
     function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
-    function move(d){ if (MODEL.submenuOpen) return; const max=MODEL.items.length-1; MODEL.index=Math.min(max,Math.max(0,MODEL.index+d)); render(); }
-    function openSub(){ const it=norm(MODEL.items[MODEL.index]); if(!it||!it.hasSub) return; MODEL.submenuOpen=true; ovTitle.textContent=it.label; ovBody.textContent='"'+it.label+'" almenü (placeholder).'; overlay.classList.add('open'); }
-    function closeSub(){ if(!MODEL.submenuOpen) return; MODEL.submenuOpen=false; overlay.classList.remove('open'); }
-    function confirm(){ const it=norm(MODEL.items[MODEL.index]); if(it&&it.hasSub) openSub(); }
+    function move(d){ 
+      if (MODEL.submenuOpen) return; 
+      const max=MODEL.items.length-1; 
+      MODEL.index=Math.min(max,Math.max(0,MODEL.index+d)); 
+      render(); 
+    }
+    
+    function openSub(){ 
+      const it=norm(MODEL.items[MODEL.index]); 
+      if(!it||!it.hasSub || !it.items) return; 
+      MODEL.submenuOpen=true; 
+      MODEL.currentSub = it.items;
+      ovTitle.textContent=it.label; 
+      
+      ovBody.innerHTML = '';
+      it.items.forEach(subItem => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = '<div class="label">'+subItem.label+'</div>';
+        row.addEventListener('click', () => {
+          if(subItem.action) {
+            fetch(`https://${GetParentResourceName()}/action`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({action: subItem.action})
+            });
+          }
+        });
+        ovBody.appendChild(row);
+      });
+      
+      overlay.classList.add('open'); 
+    }
+    
+    function closeSub(){ 
+      if(!MODEL.submenuOpen) return; 
+      MODEL.submenuOpen=false; 
+      MODEL.currentSub = null;
+      overlay.classList.remove('open'); 
+    }
+    
+    function confirm(){ 
+      const it=norm(MODEL.items[MODEL.index]); 
+      if(it&&it.hasSub) openSub(); 
+    }
+
+    function GetParentResourceName() {
+      return window.location.hostname === 'xaziz-code.github.io' ? 'menu' : window.location.hostname;
+    }
 
     window.addEventListener('keydown', (e)=>{
       if (e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
@@ -144,6 +199,7 @@
       if (d.type==='openSub'){ openSub(); }
       if (d.type==='closeSub'){ closeSub(); }
       if (d.type==='confirm'){ confirm(); }
+      if (d.type==='focus'){ menu.focus(); }
     });
 
     render();
