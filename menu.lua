@@ -11,7 +11,7 @@ local function openMenu()
     if not dui then
         dui = MachoCreateDui(MENU_URL)
         if not dui then
-            print("^1[MachoDUI] DUI Dony By 3yoni^0")
+            print("^1[MachoDUI] DUI létrehozás hiba^0")
             return
         end
         Citizen.Wait(200)
