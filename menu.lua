@@ -17,7 +17,7 @@ local function openMenu()
         Citizen.Wait(200)
         send({
             type  = "init",
-            title = "3yoni3Leek",
+            title = "Discord.gg/D99",
             index = 0,
             items = {
                 {label="Player", hasSub=true, hint="›"},
