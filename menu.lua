@@ -212,50 +212,9 @@ local function ToggleRideOnClosest_D()
     end
 end
 
-local function openMenu()
-    if not dui then
-        dui = MachoCreateDui(MENU_URL)
-        if not dui then
-            print("^1[MachoDUI] DUI létrehozás hiba^0")
-            return
-        end
-        Citizen.Wait(200)
-        send({
-            type  = "init",
-            title = "Discord.gg/D99",
-            index = 0,
-            items = {
-                {label="Player", hasSub=true, hint="›", items={
-                    {label="Super Jump", id="superJump"},
-                    {label="Fast Run", id="fastRun"},
-                    {label="Noclip (F2)", id="noclip"},
-                    {label="Remove Weapons", id="removeWeapons"}
-                }},
-                {label="Vehicle", hasSub=true, hint="›", items={
-                    {label="Neek v1", id="neekV1"},
-                    {label="Neek v2", id="neekV2"},
-                    {label="Sucking", id="sucking"},
-                    {label="Pee", id="pee"}
-                }},
-                {label="Add", hasSub=true, hint="›"},
-                {label="Settings", hasSub=true, hint="›"}
-            }
-        })
-    end
-    MachoShowDui(dui)
-    send({type="show"})
-    send({type="focus"})
-    visible = true
-end
-
-local function closeMenu()
-    if not dui then return end
-    send({type="hide"})
-    MachoHideDui(dui)
-    visible = false
-end
-
+-- ============== معالج الأوامر ==============
 local function handleMenuAction(action)
+    print("Action received: " .. tostring(action))
     if action == 'superJump' then
         superJump = not superJump
         print("Super Jump: " .. tostring(superJump))
@@ -285,23 +244,69 @@ local function handleMenuAction(action)
     end
 end
 
+AddEventHandler('macho:menuAction', function(action)
+    handleMenuAction(action)
+end)
+
+local function openMenu()
+    if not dui then
+        dui = MachoCreateDui(MENU_URL)
+        if not dui then
+            print("^1[MachoDUI] DUI létrehozás hiba^0")
+            return
+        end
+        Citizen.Wait(200)
+        send({
+            type  = "init",
+            title = "Discord.gg/D99",
+            index = 0,
+            items = {
+                {label="Player", hasSub=true, hint="›", items={
+                    {label="Super Jump", action="superJump"},
+                    {label="Fast Run", action="fastRun"},
+                    {label="Noclip (F2)", action="noclip"},
+                    {label="Remove Weapons", action="removeWeapons"}
+                }},
+                {label="Vehicle", hasSub=true, hint="›", items={
+                    {label="Neek v1", action="neekV1"},
+                    {label="Neek v2", action="neekV2"},
+                    {label="Sucking", action="sucking"},
+                    {label="Pee", action="pee"}
+                }},
+                {label="Add", hasSub=true, hint="›"},
+                {label="Settings", hasSub=true, hint="›"}
+            }
+        })
+    end
+    MachoShowDui(dui)
+    send({type="show"})
+    send({type="focus"})
+    visible = true
+end
+
+local function closeMenu()
+    if not dui then return end
+    send({type="hide"})
+    MachoHideDui(dui)
+    visible = false
+end
+
 CreateThread(function()
     while true do
         Wait(0)
 
-        -- DELETE gomb (178) nyit/zár
+        -- DELETE gomb (178)
         if IsControlJustPressed(0, 178) then
             if visible then closeMenu() else openMenu() end
         end
 
         if visible then
-            -- egyszerű nyílvezérlés
-            if IsControlJustPressed(0, 172) then send({type="move", delta=-1}) end -- ↑
-            if IsControlJustPressed(0, 173) then send({type="move", delta=1}) end -- ↓
-            if IsControlJustPressed(0, 174) then send({type="closeSub"}) end -- ←
-            if IsControlJustPressed(0, 175) then send({type="openSub"}) end -- →
-            if IsControlJustPressed(0, 176) then send({type="confirm"}) end -- Enter
-            if IsControlJustPressed(0, 177) then send({type="closeSub"}) end -- Back
+            if IsControlJustPressed(0, 172) then send({type="move", delta=-1}) end
+            if IsControlJustPressed(0, 173) then send({type="move", delta=1}) end
+            if IsControlJustPressed(0, 174) then send({type="closeSub"}) end
+            if IsControlJustPressed(0, 175) then send({type="openSub"}) end
+            if IsControlJustPressed(0, 176) then send({type="confirm"}) end
+            if IsControlJustPressed(0, 177) then send({type="closeSub"}) end
         end
         
         -- F2 for noclip
@@ -321,16 +326,6 @@ CreateThread(function()
     end
 end)
 
--- استقبال الأوامر من DUI
-RegisterRawNuiCallbackType('menuAction')
-AddEventHandler('__cfx_nui:menuAction', function(body, cb)
-    if body and body.action then
-        handleMenuAction(body.action)
-    end
-    cb({status = 'ok'})
-end)
-
--- Cleanup
 AddEventHandler("onResourceStop", function(resName)
     if GetCurrentResourceName() ~= resName then return end
     ClearDetach()
