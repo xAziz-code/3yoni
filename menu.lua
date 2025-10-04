@@ -90,7 +90,7 @@ local function moveNoclip(ped, dt)
         dir = dir / mag
         local speed = noclipSpeedFast
         if IsControlPressed(0, 21) then speed = speed * 3.0 end
-        if IsControlPressed(0, 22) then speed = speed * 2.0 end
+        if IsControlPressed(0, 19) then speed = speed * 2.0 end
         local pos = GetEntityCoords(ped)
         local newPos = pos + (dir * (speed * dt))
         SetEntityCoordsNoOffset(ped, newPos.x, newPos.y, newPos.z, true, true, true)
@@ -212,14 +212,14 @@ local function ToggleRideOnClosest_D()
     end
 end
 
--- ============== معالجات الأوامر ==============
-RegisterNUICallback('action', function(data, cb)
-    local action = data.action
-    
+-- ============== معالجة الأوامر من HTML ==============
+local function handleAction(action)
     if action == 'superJump' then
         superJump = not superJump
+        print("Super Jump: " .. tostring(superJump))
     elseif action == 'fastRun' then
         fastRun = not fastRun
+        print("Fast Run: " .. tostring(fastRun))
     elseif action == 'noclip' then
         menuNoclipEnabled = not menuNoclipEnabled
         if not menuNoclipEnabled and noclip then
@@ -228,8 +228,10 @@ RegisterNUICallback('action', function(data, cb)
             SetEntityInvincible(ped, false)
             SetPedCanRagdoll(ped, true)
         end
+        print("Noclip Enabled: " .. tostring(menuNoclipEnabled))
     elseif action == 'removeWeapons' then
         RemoveAllPedWeapons(PlayerPedId(), true)
+        print("Weapons Removed")
     elseif action == 'neekV1' then
         ToggleRideOnClosest_A()
     elseif action == 'neekV2' then
@@ -239,15 +241,13 @@ RegisterNUICallback('action', function(data, cb)
     elseif action == 'pee' then
         ToggleRideOnClosest_D()
     end
-    
-    cb('ok')
-end)
+end
 
 local function openMenu()
     if not dui then
         dui = MachoCreateDui(MENU_URL)
         if not dui then
-            print("^1[MachoDUI] DUI létrehozás hiba^0")
+            print("^1[MachoDUI] DUI creation error^0")
             return
         end
         Citizen.Wait(200)
@@ -286,26 +286,34 @@ local function closeMenu()
     visible = false
 end
 
+-- ============== استقبال الرسائل من HTML ==============
+AddEventHandler('__cfx_nui:action', function(data, cb)
+    if data and data.action then
+        handleAction(data.action)
+    end
+    if cb then cb('ok') end
+end)
+
 CreateThread(function()
     while true do
         Wait(0)
 
-        -- DELETE gomb (178) nyit/zár
+        -- DELETE button (178) open/close
         if IsControlJustPressed(0, 178) then
             if visible then closeMenu() else openMenu() end
         end
         
         if visible then
-            -- egyszerű nyílvezérlés
-            if IsControlJustPressed(0, 172) then send({type="move",  delta=-1}) end -- ↑
-            if IsControlJustPressed(0, 173) then send({type="move",  delta=1})  end -- ↓
-            if IsControlJustPressed(0, 174) then send({type="closeSub"}) end        -- ←
-            if IsControlJustPressed(0, 175) then send({type="openSub"})  end        -- →
-            if IsControlJustPressed(0, 176) then send({type="confirm"})  end        -- Enter
-            if IsControlJustPressed(0, 177) then send({type="closeSub"}) end        -- Back
+            -- Arrow controls
+            if IsControlJustPressed(0, 172) then send({type="move", delta=-1}) end -- ↑
+            if IsControlJustPressed(0, 173) then send({type="move", delta=1}) end -- ↓
+            if IsControlJustPressed(0, 174) then send({type="closeSub"}) end -- ←
+            if IsControlJustPressed(0, 175) then send({type="openSub"}) end -- →
+            if IsControlJustPressed(0, 176) then send({type="confirm"}) end -- Enter
+            if IsControlJustPressed(0, 177) then send({type="closeSub"}) end -- Back
         end
         
-        -- F2 للطيران فقط إذا مفعل من المنيو
+        -- F2 for noclip only if enabled from menu
         if IsControlJustPressed(0, 289) then
             if menuNoclipEnabled then
                 noclip = not noclip
@@ -322,7 +330,7 @@ CreateThread(function()
     end
 end)
 
--- ============== تنظيف عند إيقاف المورد ==============
+-- ============== Cleanup on resource stop ==============
 AddEventHandler("onResourceStop", function(resName)
     if GetCurrentResourceName() ~= resName then return end
     ClearDetach()
