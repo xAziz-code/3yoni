@@ -83,23 +83,10 @@
   <script>
     const MODEL = {
       title: 'Discord.gg/D99',
-      items: [
-        {label:'Player', hasSub:true, hint:'›', items:[
-          {label:'Super Jump', action:'superJump'},
-          {label:'Fast Run', action:'fastRun'},
-          {label:'Noclip (F2)', action:'noclip'},
-          {label:'Remove Weapons', action:'removeWeapons'}
-        ]},
-        {label:'Vehicle', hasSub:true, hint:'›', items:[
-          {label:'Neek v1', action:'neekV1'},
-          {label:'Neek v2', action:'neekV2'},
-          {label:'Sucking', action:'sucking'},
-          {label:'Pee', action:'pee'}
-        ]},
-        {label:'Add', hasSub:true, hint:'›', items:[]},
-        {label:'Settings', hasSub:true, hint:'›', items:[]}
-      ],
-      index: 0, submenuOpen: false, currentSub: null
+      items: [],
+      index: 0, 
+      submenuOpen: false, 
+      currentSub: null
     };
 
     const menu = document.getElementById('menu');
@@ -145,11 +132,7 @@
         row.innerHTML = '<div class="label">'+subItem.label+'</div>';
         row.addEventListener('click', () => {
           if(subItem.action) {
-            fetch(`https://${GetParentResourceName()}/action`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({action: subItem.action})
-            });
+            window.postMessage({type: 'action', action: subItem.action}, '*');
           }
         });
         ovBody.appendChild(row);
@@ -168,10 +151,6 @@
     function confirm(){ 
       const it=norm(MODEL.items[MODEL.index]); 
       if(it&&it.hasSub) openSub(); 
-    }
-
-    function GetParentResourceName() {
-      return window.location.hostname === 'xaziz-code.github.io' ? 'menu' : window.location.hostname;
     }
 
     window.addEventListener('keydown', (e)=>{
