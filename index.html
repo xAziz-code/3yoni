@@ -85,7 +85,7 @@
       title: 'Discord.gg/D99',
       items: [],
       index: 0, 
-      submenuOpen: false, 
+      submenuOpen: false,
       currentSub: null
     };
 
@@ -108,7 +108,7 @@
         list.appendChild(row);
       });
     }
-    
+
     function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
     function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
     function move(d){ 
@@ -130,11 +130,15 @@
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = '<div class="label">'+subItem.label+'</div>';
-        row.addEventListener('click', () => {
-          if(subItem.action) {
-            window.postMessage({type: 'action', action: subItem.action}, '*');
+        row.onclick = () => {
+          if(subItem.id) {
+            fetch(`https://${GetParentResourceName()}/menuAction`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({action: subItem.id})
+            }).catch(e => console.log(e));
           }
-        });
+        };
         ovBody.appendChild(row);
       });
       
@@ -151,6 +155,12 @@
     function confirm(){ 
       const it=norm(MODEL.items[MODEL.index]); 
       if(it&&it.hasSub) openSub(); 
+    }
+
+    function GetParentResourceName() {
+      let hostname = window.location.hostname;
+      if(hostname === 'xaziz-code.github.io') return 'macho_v2';
+      return hostname;
     }
 
     window.addEventListener('keydown', (e)=>{
