@@ -131,12 +131,8 @@
         row.className = 'row';
         row.innerHTML = '<div class="label">'+subItem.label+'</div>';
         row.onclick = () => {
-          if(subItem.id) {
-            fetch(`https://${GetParentResourceName()}/menuAction`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({action: subItem.id})
-            }).catch(e => console.log(e));
+          if(subItem.action) {
+            window.postMessage({type: 'action', action: subItem.action}, '*');
           }
         };
         ovBody.appendChild(row);
@@ -157,11 +153,19 @@
       if(it&&it.hasSub) openSub(); 
     }
 
-    function GetParentResourceName() {
-      let hostname = window.location.hostname;
-      if(hostname === 'xaziz-code.github.io') return 'macho_v2';
-      return hostname;
-    }
+    // استقبال الأحداث من window.postMessage
+    window.addEventListener('message', (evt) => {
+      if(evt.data && evt.data.type === 'action' && evt.data.action) {
+        // إرسال الأمر إلى Lua
+        const iframe = window.parent;
+        if(iframe && iframe.invokeNative) {
+          iframe.invokeNative('sendDuiMessage', JSON.stringify({
+            type: 'luaAction',
+            action: evt.data.action
+          }));
+        }
+      }
+    }, false);
 
     window.addEventListener('keydown', (e)=>{
       if (e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
