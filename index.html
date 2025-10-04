@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3yoni3Leek</title>
+  <style>
+    :root{
+      --panel: rgba(12,14,18,0.95);
+      --panel2: rgba(20,22,28,0.96);
+      --text: #eaf0ff;
+      --muted:#98a6b7;
+      --accent:#2a86ff;
+      --row:#1a1f27;
+      --rowActive: rgba(42,134,255,0.20);
+      --w: 360px;
+      --row-h: 36px;
+      --r: 10px;
+      --shadow: 0 14px 40px rgba(0,0,0,.55);
+    }
+    *{ box-sizing:border-box; user-select:none; -webkit-user-select:none; font-family: Arial, Helvetica, sans-serif; }
+    html,body{ margin:0; background:transparent; color:var(--text); }
+
+    .dock{
+      position: fixed; right: 36px; top: 50%; transform: translateY(-50%);
+      width: var(--w); max-width: calc(100vw - 40px);
+      border-radius: var(--r); background: var(--panel);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .hidden{ display:none !important; }
+
+    .header{
+      padding: 12px 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0)),
+        radial-gradient(140px 70px at 85% 0%, rgba(42,134,255,0.35), transparent 70%);
+    }
+    .banner{
+      width: 100%; height: 60px; object-fit: cover;
+      border-radius: 8px; margin-bottom: 8px; display:block;
+    }
+    .brand{ font-size:22px; font-weight:800; letter-spacing:.4px; }
+
+    .list{ background: var(--panel2); padding: 10px; }
+    .row{
+      height: var(--row-h); line-height: var(--row-h); padding: 0 12px; margin-bottom: 6px;
+      border-radius: 6px; background: var(--row); border: 1px solid transparent;
+      display:flex; align-items:center; justify-content:space-between; font-size: 14px;
+      transition: background .12s, border-color .12s, box-shadow .12s;
+    }
+    .row:last-child{ margin-bottom:0; }
+    .row .label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .row .hint{ color:var(--muted); font-size:12px; }
+    .row.active{ background: var(--rowActive); border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(42,134,255,0.25); }
+
+    .overlay{
+      position:absolute; inset:0; background: rgba(12,14,18,0.98);
+      transform: translateX(100%); transition: transform .16s ease-out;
+      display:flex; flex-direction:column;
+    }
+    .overlay.open{ transform: translateX(0); }
+    .ov-head{ padding:12px 14px; display:flex; justify-content:space-between; }
+    .ov-title{ font-weight:700; }
+    .ov-body{ padding:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="menu" class="dock hidden" tabindex="-1" aria-hidden="true">
+<div class="header" style="overflow:hidden; border-radius:10px 10px 0 0;">
+  <img src="./banner.png?v=2" class="banner" alt="3yoni3Leek" onerror="this.style.display='none'">
+  <div class="brand" id="brand">3yoni3Leek</div>
+</div>
+
+    <div class="list" id="list"></div>
+
+    <div class="overlay" id="overlay">
+      <div class="ov-head"><div class="ov-title" id="ovTitle">Submenu</div></div>
+      <div class="ov-body" id="ovBody">Itt majd az adott kategória beállításai lesznek.</div>
+    </div>
+  </div>
+
+  <script>
+    const MODEL = {
+      title: 'hazetomika menu',
+      items: [
+        {label:'Player', hasSub:true, hint:'›'},
+        {label:'Vehicle', hasSub:true, hint:'›'},
+        {label:'Add', hasSub:true, hint:'›'},
+        {label:'Settings', hasSub:true, hint:'›'}
+      ],
+      index: 0, submenuOpen: false
+    };
+
+    const menu = document.getElementById('menu');
+    const list = document.getElementById('list');
+    const brand = document.getElementById('brand');
+    const overlay = document.getElementById('overlay');
+    const ovTitle = document.getElementById('ovTitle');
+    const ovBody  = document.getElementById('ovBody');
+
+    const norm = x => typeof x === 'string' ? {label:x} : x;
+
+    function render(){
+      brand.textContent = MODEL.title;
+      list.innerHTML = '';
+      MODEL.items.map(norm).forEach((it, i)=>{
+        const row = document.createElement('div');
+        row.className = 'row' + (i===MODEL.index ? ' active':'' );
+        row.innerHTML = '<div class="label">'+it.label+'</div><div class="hint">'+(it.hint||'')+'</div>';
+        list.appendChild(row);
+      });
+    }
+
+    function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
+    function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
+    function move(d){ if (MODEL.submenuOpen) return; const max=MODEL.items.length-1; MODEL.index=Math.min(max,Math.max(0,MODEL.index+d)); render(); }
+    function openSub(){ const it=norm(MODEL.items[MODEL.index]); if(!it||!it.hasSub) return; MODEL.submenuOpen=true; ovTitle.textContent=it.label; ovBody.textContent='"'+it.label+'" almenü (placeholder).'; overlay.classList.add('open'); }
+    function closeSub(){ if(!MODEL.submenuOpen) return; MODEL.submenuOpen=false; overlay.classList.remove('open'); }
+    function confirm(){ const it=norm(MODEL.items[MODEL.index]); if(it&&it.hasSub) openSub(); }
+
+    window.addEventListener('keydown', (e)=>{
+      if (e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
+      if (e.key==='ArrowDown'){ e.preventDefault(); move(1); }
+      if (e.key==='ArrowLeft'){ e.preventDefault(); closeSub(); }
+      if (e.key==='ArrowRight'){ e.preventDefault(); openSub(); }
+      if (e.key==='Enter' || e.code==='NumpadEnter'){ e.preventDefault(); confirm(); }
+    });
+
+    window.addEventListener('message', (event)=>{
+      const d = event.data || {};
+      if (d.type==='show') { show(); return; }
+      if (d.type==='hide') { hide(); return; }
+      if (d.type==='init'){
+        if (d.title) MODEL.title=d.title;
+        if (Array.isArray(d.items)) MODEL.items=d.items;
+        MODEL.index = (typeof d.index==='number')? d.index : 0;
+        render(); show(); return;
+      }
+      if (d.type==='setTitle' && d.title){ MODEL.title=d.title; render(); }
+      if (d.type==='setItems' && Array.isArray(d.items)){ MODEL.items=d.items; render(); }
+      if (d.type==='setIndex' && Number.isInteger(d.index)){ MODEL.index=Math.max(0,Math.min(MODEL.items.length-1,d.index)); render(); }
+      if (d.type==='move' && typeof d.delta==='number'){ move(d.delta); }
+      if (d.type==='openSub'){ openSub(); }
+      if (d.type==='closeSub'){ closeSub(); }
+      if (d.type==='confirm'){ confirm(); }
+    });
+
+    render();
+  </script>
+</body>
+</html>
