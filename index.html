@@ -81,72 +81,178 @@
   </div>
 
   <script>
-    const MODEL = {
-      title: 'Discord.gg/D99',
-      items: [
-        {label:'Player', hasSub:true, hint:'›'},
-        {label:'Vehicle', hasSub:true, hint:'›'},
-        {label:'Add', hasSub:true, hint:'›'},
-        {label:'Settings', hasSub:true, hint:'›'}
-      ],
-      index: 0, submenuOpen: false
-    };
 
-    const menu = document.getElementById('menu');
-    const list = document.getElementById('list');
-    const brand = document.getElementById('brand');
-    const overlay = document.getElementById('overlay');
-    const ovTitle = document.getElementById('ovTitle');
-    const ovBody  = document.getElementById('ovBody');
-
-    const norm = x => typeof x === 'string' ? {label:x} : x;
-
-    function render(){
-      brand.textContent = MODEL.title;
-      list.innerHTML = '';
-      MODEL.items.map(norm).forEach((it, i)=>{
-        const row = document.createElement('div');
-        row.className = 'row' + (i===MODEL.index ? ' active':'' );
-        row.innerHTML = '<div class="label">'+it.label+'</div><div class="hint">'+(it.hint||'')+'</div>';
-        list.appendChild(row);
-      });
-    }
-
-    function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
-    function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
-    function move(d){ if (MODEL.submenuOpen) return; const max=MODEL.items.length-1; MODEL.index=Math.min(max,Math.max(0,MODEL.index+d)); render(); }
-    function openSub(){ const it=norm(MODEL.items[MODEL.index]); if(!it||!it.hasSub) return; MODEL.submenuOpen=true; ovTitle.textContent=it.label; ovBody.textContent='"'+it.label+'" almenü (placeholder).'; overlay.classList.add('open'); }
-    function closeSub(){ if(!MODEL.submenuOpen) return; MODEL.submenuOpen=false; overlay.classList.remove('open'); }
-    function confirm(){ const it=norm(MODEL.items[MODEL.index]); if(it&&it.hasSub) openSub(); }
-
-    window.addEventListener('keydown', (e)=>{
-      if (e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
-      if (e.key==='ArrowDown'){ e.preventDefault(); move(1); }
-      if (e.key==='ArrowLeft'){ e.preventDefault(); closeSub(); }
-      if (e.key==='ArrowRight'){ e.preventDefault(); openSub(); }
-      if (e.key==='Enter' || e.code==='NumpadEnter'){ e.preventDefault(); confirm(); }
-    });
-
-    window.addEventListener('message', (event)=>{
-      const d = event.data || {};
-      if (d.type==='show') { show(); return; }
-      if (d.type==='hide') { hide(); return; }
-      if (d.type==='init'){
-        if (d.title) MODEL.title=d.title;
-        if (Array.isArray(d.items)) MODEL.items=d.items;
-        MODEL.index = (typeof d.index==='number')? d.index : 0;
-        render(); show(); return;
+  const MODEL = {
+    title: 'Discord.gg/D99',
+    items: [
+      {
+        label:'Player', hasSub:true, hint:'›',
+        sub: [
+          { type:'toggle', label:'Super Jump', action:'player:superJump', state:false },
+          { type:'toggle', label:'Fast Run',   action:'player:fastRun',   state:false },
+          // ملاحظة: سكربتك تشير لـ F2 في الكود، بينما التعليق يقول F3. شوف الملاحظة أسفل.
+          { type:'toggle', label:'Noclip Key (F2)', action:'player:menuNoclipEnabled', state:false },
+          { type:'button', label:'Remove Weapons',  action:'player:removeWeapons' },
+        ]
+      },
+      {
+        label:'Actions', hasSub:true, hint:'›',
+        sub: [
+          { type:'button', label:'Neek v1', action:'player:rideA' },
+          { type:'button', label:'Neek v2', action:'player:rideB' },
+          { type:'button', label:'sucking', action:'player:rideC' },
+          { type:'button', label:'pee',     action:'player:rideD' },
+        ]
+      },
+      { label:'Vehicle',  hasSub:true, hint:'›', sub:[
+          { type:'button', label:'Infos',  action:'vehicle:info' },
+          { type:'button', label:'Repair', action:'vehicle:repair' },
+        ]
+      },
+      { label:'Settings', hasSub:true, hint:'›', sub:[
+          { type:'button', label:'Language: AR', action:'settings:lang', value:'ar' },
+        ]
       }
-      if (d.type==='setTitle' && d.title){ MODEL.title=d.title; render(); }
-      if (d.type==='setItems' && Array.isArray(d.items)){ MODEL.items=d.items; render(); }
-      if (d.type==='setIndex' && Number.isInteger(d.index)){ MODEL.index=Math.max(0,Math.min(MODEL.items.length-1,d.index)); render(); }
-      if (d.type==='move' && typeof d.delta==='number'){ move(d.delta); }
-      if (d.type==='openSub'){ openSub(); }
-      if (d.type==='closeSub'){ closeSub(); }
-      if (d.type==='confirm'){ confirm(); }
+    ],
+    index: 0, submenuOpen: false, subIndex: 0
+  };
+
+  const menu    = document.getElementById('menu');
+  const list    = document.getElementById('list');
+  const brand   = document.getElementById('brand');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovBody  = document.getElementById('ovBody');
+
+  const norm = x => (typeof x === 'string' ? {label:x} : x);
+
+  function render(){
+    brand.textContent = MODEL.title;
+    list.innerHTML = '';
+    MODEL.items.map(norm).forEach((it, i)=>{
+      const row = document.createElement('div');
+      row.className = 'row' + (i===MODEL.index ? ' active':'' );
+      row.innerHTML = '<div class="label">'+it.label+'</div><div class="hint">'+(it.hint||'')+'</div>';
+      row.addEventListener('click', () => { MODEL.index = i; render(); if(it.hasSub) openSub(); });
+      list.appendChild(row);
+    });
+  }
+
+  function renderSub(){
+    const it = norm(MODEL.items[MODEL.index] || {});
+    const sub = (it.sub || []).map(norm);
+    ovTitle.textContent = it.label || 'Submenu';
+
+    ovBody.innerHTML = '<div id="subList"></div>';
+    const subList = document.getElementById('subList');
+
+    sub.forEach((s, i)=>{
+      const isToggle = s.type === 'toggle';
+      const hint = isToggle ? (s.state ? 'ON' : 'OFF') : (s.hint || '');
+      const row = document.createElement('div');
+      row.className = 'row' + (i===MODEL.subIndex ? ' active' : '');
+      row.innerHTML = '<div class="label">'+s.label+'</div><div class="hint">'+hint+'</div>';
+      row.addEventListener('click', ()=>{
+        MODEL.subIndex = i; renderSub();
+        confirmSub(); // بالماوس ينفّذ مباشرة
+      });
+      subList.appendChild(row);
     });
 
+    if (sub.length === 0){
+      const empty = document.createElement('div');
+      empty.style.cssText = 'color:var(--muted); padding:4px 2px;';
+      empty.textContent = 'لا توجد عناصر هنا.';
+      subList.appendChild(empty);
+    }
+  }
+
+  function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
+  function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
+
+  function move(d){
+    if (MODEL.submenuOpen) return;
+    const max = MODEL.items.length - 1;
+    MODEL.index = Math.min(max, Math.max(0, MODEL.index + d));
     render();
-  </script>
-</body>
-</html>
+  }
+
+  function moveSub(d){
+    const it  = norm(MODEL.items[MODEL.index] || {});
+    const max = Math.max(0, (it.sub?.length || 1) - 1);
+    MODEL.subIndex = Math.min(max, Math.max(0, (MODEL.subIndex ?? 0) + d));
+    renderSub();
+  }
+
+  function openSub(){
+    const it = norm(MODEL.items[MODEL.index]);
+    if(!it || !it.hasSub) return;
+    MODEL.submenuOpen = true;
+    MODEL.subIndex = 0;
+    overlay.classList.add('open');
+    renderSub();
+  }
+  function closeSub(){
+    if(!MODEL.submenuOpen) return;
+    MODEL.submenuOpen = false;
+    overlay.classList.remove('open');
+  }
+  function confirm(){
+    const it = norm(MODEL.items[MODEL.index]);
+    if (it && it.hasSub) openSub();
+  }
+
+  function confirmSub(){
+    const it = norm(MODEL.items[MODEL.index] || {});
+    const s  = norm((it.sub || [])[MODEL.subIndex || 0]);
+    if(!s) return;
+
+    if (s.type === 'toggle'){
+      s.state = !s.state;
+      nuiPerform({ action: s.action, state: s.state });
+      renderSub();
+    } else {
+      nuiPerform({ action: s.action, value: s.value });
+    }
+  }
+
+  // كيبورد
+  window.addEventListener('keydown', (e)=>{
+    if (e.key==='ArrowUp'){    e.preventDefault(); MODEL.submenuOpen ? moveSub(-1) : move(-1); }
+    if (e.key==='ArrowDown'){  e.preventDefault(); MODEL.submenuOpen ? moveSub(1)  : move(1); }
+    if (e.key==='ArrowLeft'){  e.preventDefault(); closeSub(); }
+    if (e.key==='ArrowRight'){ e.preventDefault(); openSub(); }
+    if (e.key==='Enter' || e.code==='NumpadEnter'){ e.preventDefault(); MODEL.submenuOpen ? confirmSub() : confirm(); }
+  });
+
+  // استقبال رسائل من Lua (SendNUIMessage)
+  window.addEventListener('message', (event)=>{
+    const d = event.data || {};
+    if (d.type==='show') { show(); return; }
+    if (d.type==='hide') { hide(); return; }
+    if (d.type==='init'){
+      if (d.title) MODEL.title=d.title;
+      if (Array.isArray(d.items)) MODEL.items=d.items;
+      MODEL.index = (typeof d.index==='number')? d.index : 0;
+      render(); show(); return;
+    }
+    if (d.type==='setTitle' && d.title){ MODEL.title=d.title; render(); }
+    if (d.type==='setItems' && Array.isArray(d.items)){ MODEL.items=d.items; render(); }
+    if (d.type==='setIndex' && Number.isInteger(d.index)){ MODEL.index=Math.max(0,Math.min(MODEL.items.length-1,d.index)); render(); }
+    if (d.type==='openSub'){ openSub(); }
+    if (d.type==='closeSub'){ closeSub(); }
+    if (d.type==='confirm'){ MODEL.submenuOpen ? confirmSub() : confirm(); }
+
+    // مزامنة حالة toggle من Lua (اختياري)
+    if (d.type==='setToggle' && d.action!==undefined && typeof d.state==='boolean'){
+      MODEL.items.forEach((it)=>{
+        (it.sub||[]).forEach((s)=>{
+          if (s.action === d.action && s.type==='toggle'){ s.state = d.state; }
+        });
+      });
+      if (MODEL.submenuOpen) renderSub();
+    }
+  });
+
+  render();
+</script>
