@@ -87,7 +87,7 @@
   </div>
 
   <script>
-    // افتراضي فقط؛ ستأتي العناصر الفعلية من Lua عبر init
+    
     const MODEL = {
       title: 'Discord.gg/D99',
       items: [
@@ -138,7 +138,7 @@
     function openSub(){ overlay.classList.add('open'); }
     function closeSub(){ overlay.classList.remove('open'); }
 
-    // استقبال أوامر من Lua
+
     window.addEventListener('message', (event)=>{
       const d = event.data || {};
       if (d.type==='show') { show(); return; }
@@ -173,7 +173,7 @@
       if (d.type==='openSub'){ openSub(); return; }
       if (d.type==='closeSub'){ closeSub(); return; }
 
-      // فتح الروابط الخارجية
+      // 
       if (d.type === 'openURL' && typeof d.url === 'string'){
         try { window.open(d.url, '_blank'); } catch(e){}
         return;
