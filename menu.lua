@@ -1,28 +1,26 @@
 -- =========================================================
 -- Macho Menu — Old DUI Shape (Dock + Overlay)
--- Two Sections:
---   Animation: Super Jump + Fast Run + Noclip(F2 Enable) + GiveWeapon
---   Vehicle  : Neek v1 / Neek v2 / sucking / pee
--- Open/Close menu key: E (INPUT_CONTEXT = 38)
--- No "Close" buttons in sections (الإغلاق بالمفاتيح فقط)
+-- Sections:
+--   Menu  : Super Jump + Fast Run + Noclip(F2 Enable) + GiveWeapon
+--   Sex   : Neek v1 / Neek v2 / sucking / pee
+--   Menu By 3yonii: Discord (يفتح رابط الدعوة)
+-- Open/Close: E (INPUT_CONTEXT = 38)
 -- =========================================================
 
 local dui, visible = nil, false
 local submenuOpen = false
-local MENU_URL = "https://xaziz-code.github.io/3yoni/" -- ارفع index.html المعدل إلى نفس الرابط أو غيّره لرابطك
+local MENU_URL = "https://xaziz-code.github.io/3yoni/" -- ارفع index.html المعدل على نفس الرابط
 
--- ============== إرسال رسالة للـ DUI ==============
 local function send(m)
-    if dui then
-        MachoSendDuiMessage(dui, json.encode(m))
-    end
+    if dui then MachoSendDuiMessage(dui, json.encode(m)) end
 end
 
--- ============== حالة المنيو ==============
+-- الحالة العامة
 local rootIndex, subIndex = 0, 0
 local ROOT = {
-    { label = "Animation", hasSub = true },
-    { label = "Vehicle",   hasSub = true }
+    { label = "Menu", hasSub = true },
+    { label = "Sex", hasSub = true },
+    { label = "Menu By 3yonii", hasSub = true }
 }
 
 -- حالات الميزات
@@ -32,30 +30,23 @@ local noclip = false
 local menuNoclipEnabled = false
 local noclipSpeedFast = 150.0
 
--- ============== أدوات مشتركة ==============
+-- أدوات
 local function GetClosestPlayer()
     local players = GetActivePlayers()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     local closestPlayer, closestDist = -1, 999.0
-
     for _, i in pairs(players) do
         local target = GetPlayerPed(i)
         if target ~= ped then
-            local targetCoords = GetEntityCoords(target)
-            local dist = #(coords - targetCoords)
-            if dist < closestDist then
-                closestDist = dist
-                closestPlayer = i
-            end
+            local d = #(coords - GetEntityCoords(target))
+            if d < closestDist then closestDist, closestPlayer = d, i end
         end
     end
-
     if closestDist < 70.0 and closestPlayer ~= -1 then
         return GetPlayerPed(closestPlayer)
-    else
-        return nil
     end
+    return nil
 end
 
 local function PlayAnimation(animDict, animName, flag)
@@ -83,8 +74,7 @@ local function SetPedInvisible(ped, toggle)
     end
 end
 
--- ============== Threads الميزات ==============
--- Super Jump
+-- Threads
 CreateThread(function()
     while true do
         if superJump then SetSuperJumpThisFrame(PlayerId()) end
@@ -92,7 +82,6 @@ CreateThread(function()
     end
 end)
 
--- Fast Run
 local normalRunMultiplier = 1.0
 local fastRunMultiplier = 10.0
 local fastWalkMultiplier = 3.0
@@ -111,53 +100,29 @@ CreateThread(function()
     end
 end)
 
--- Noclip helpers
-local function normalizeHeading(h)
-    h = h % 360.0
-    if h < 0.0 then h = h + 360.0 end
-    return h
-end
-
-local function smoothHeading(cur, target, maxStep)
-    local diff = ((target - cur + 540.0) % 360.0) - 180.0
-    local step = math.max(-maxStep, math.min(maxStep, diff))
-    return normalizeHeading(cur + step)
-end
-
 local function getCamForward()
     local rot = GetGameplayCamRot(2)
     local radX, radZ = math.rad(rot.x), math.rad(rot.z)
-    return vector3(
-        -math.sin(radZ) * math.cos(radX),
-        math.cos(radZ) * math.cos(radX),
-        math.sin(radX)
-    )
+    return vector3(-math.sin(radZ) * math.cos(radX), math.cos(radZ) * math.cos(radX), math.sin(radX))
 end
 
 local function getCamRight()
     local rot = GetGameplayCamRot(2)
     local yaw = math.rad(rot.z + 90.0)
     local pitch = math.rad(rot.x)
-    return vector3(
-        -math.sin(yaw) * math.cos(pitch),
-        math.cos(yaw) * math.cos(pitch),
-        0.0
-    )
+    return vector3(-math.sin(yaw) * math.cos(pitch), math.cos(yaw) * math.cos(pitch), 0.0)
 end
 
 local function moveNoclip(ped, dt)
     local dir = vector3(0.0, 0.0, 0.0)
-    local fwd = getCamForward()
-    local right = getCamRight()
-
-    if IsControlPressed(0, 32) then dir = dir + fwd end      -- W
-    if IsControlPressed(0, 33) then dir = dir - fwd end      -- S
-    if IsControlPressed(0, 34) then dir = dir + right end    -- A
-    if IsControlPressed(0, 35) then dir = dir - right end    -- D
+    local fwd, right = getCamForward(), getCamRight()
+    if IsControlPressed(0, 32) then dir = dir + fwd end -- W
+    if IsControlPressed(0, 33) then dir = dir - fwd end -- S
+    if IsControlPressed(0, 34) then dir = dir + right end -- A
+    if IsControlPressed(0, 35) then dir = dir - right end -- D
     if IsControlPressed(0, 22) then dir = dir + vector3(0.0,0.0,1.0) end -- Space
     if IsControlPressed(0, 36) then dir = dir - vector3(0.0,0.0,1.0) end -- Ctrl
-
-    local mag = math.sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z)
+    local mag = #(dir)
     if mag > 0.0001 then
         dir = dir / mag
         local speed = noclipSpeedFast
@@ -179,15 +144,12 @@ CreateThread(function()
             SetPedCanRagdoll(ped, false)
             SetPedInvisible(ped, true)
             moveNoclip(ped, dt)
-            local camYaw = GetGameplayCamRot(2).z
-            local curHeading = GetEntityHeading(ped)
-            SetEntityHeading(ped, smoothHeading(curHeading, camYaw, 10.0))
         end
         Wait(0)
     end
 end)
 
--- ============== أزرار Vehicle (Right Actions) ==============
+-- أزرار Sex
 local function ToggleRideOnClosest_A()
     local targetPed = GetClosestPlayer()
     if targetPed then
@@ -244,7 +206,7 @@ local function ToggleRideOnClosest_D()
     end
 end
 
--- ============== حزمة الأسلحة ==============
+-- حزمة الأسلحة
 local function GiveWeaponPack()
     local ped = PlayerPedId()
     local list = {
@@ -268,8 +230,8 @@ local function GiveWeaponPack()
     })
 end
 
--- ============== توليد عناصر القسم بحسب الحالة ==============
-local function getAnimationSubItems()
+-- عناصر القوائم
+local function getMenuSubItems()
     return {
         { label = "Super Jump", state = superJump, type = "toggle", key = "superJump" },
         { label = "Fast Run", state = fastRun, type = "toggle", key = "fastRun" },
@@ -278,7 +240,7 @@ local function getAnimationSubItems()
     }
 end
 
-local function getVehicleSubItems()
+local function getSexSubItems()
     return {
         { label = "Neek v1", type = "button", key = "neek1" },
         { label = "Neek v2", type = "button", key = "neek2" },
@@ -287,30 +249,39 @@ local function getVehicleSubItems()
     }
 end
 
+local function get3yoniiSubItems()
+    return {
+        { label = "Discord", type = "button", key = "discord" }
+    }
+end
+
 local function refreshSubmenuUI()
     if not submenuOpen then return end
     local title = ROOT[rootIndex+1].label
-    local items = (title=="Animation") and getAnimationSubItems() or getVehicleSubItems()
+    local items =
+        (title=="Menu") and getMenuSubItems() or
+        (title=="Sex") and getSexSubItems() or
+        get3yoniiSubItems()
     send({ type="setSubmenu", title=title, items=items, index=subIndex })
 end
 
 local function updateSubIndex(delta)
     subIndex = subIndex + delta
     local max = 0
-    if ROOT[rootIndex+1].label == "Animation" then max = #getAnimationSubItems() - 1 else max = #getVehicleSubItems() - 1 end
+    local title = ROOT[rootIndex+1].label
+    if title == "Menu" then max = #getMenuSubItems() - 1
+    elseif title == "Sex" then max = #getSexSubItems() - 1
+    else max = #get3yoniiSubItems() - 1 end
     if subIndex < 0 then subIndex = 0 end
     if subIndex > max then subIndex = max end
     send({type="setSubIndex", index=subIndex})
 end
 
--- ============== فتح/إغلاق المنيو ==============
+-- فتح/إغلاق
 local function openMenu()
     if not dui then
         dui = MachoCreateDui(MENU_URL)
-        if not dui then
-            print("^1[MachoDUI] DUI create failed^0")
-            return
-        end
+        if not dui then print("^1[MachoDUI] DUI create failed^0"); return end
         Citizen.Wait(200)
         send({ type="init", title="Discord.gg/D99", index=rootIndex, items=ROOT })
     end
@@ -340,15 +311,14 @@ local function closeSub()
     send({type="closeSub"})
 end
 
--- ============== تنفيذ عنصر في القسم ==============
-local function execAnimation(idx)
+-- تنفيذ
+local function execMenu(idx)
     if idx == 0 then
         superJump = not superJump
     elseif idx == 1 then
         fastRun = not fastRun
     elseif idx == 2 then
         menuNoclipEnabled = not menuNoclipEnabled
-        -- إيقاف الطيران إن تم تعطيل الـ Enable
         if not menuNoclipEnabled and noclip then
             noclip = false
             local ped = PlayerPedId()
@@ -364,11 +334,18 @@ local function execAnimation(idx)
     refreshSubmenuUI()
 end
 
-local function execVehicle(idx)
+local function execSex(idx)
     if idx == 0 then ToggleRideOnClosest_A()
     elseif idx == 1 then ToggleRideOnClosest_B()
     elseif idx == 2 then ToggleRideOnClosest_C()
     elseif idx == 3 then ToggleRideOnClosest_D()
+    end
+end
+
+local function exec3yonii(idx)
+    if idx == 0 then
+        -- افتح رابط الديسكورد داخل الـ DUI
+        send({ type = "openURL", url = "https://discord.gg/D99" })
     end
 end
 
@@ -378,56 +355,44 @@ local function confirm()
         return
     end
     local title = ROOT[rootIndex+1].label
-    if title == "Animation" then execAnimation(subIndex) else execVehicle(subIndex) end
+    if title == "Menu" then
+        execMenu(subIndex)
+    elseif title == "Sex" then
+        execSex(subIndex)
+    else
+        exec3yonii(subIndex)
+    end
 end
 
--- ============== تحكم لوحة المفاتيح ==============
+-- تحكم لوحة المفاتيح
 CreateThread(function()
     while true do
         Wait(0)
-
-        -- فتح/إغلاق بـ E (INPUT_CONTEXT = 38)
+        -- E
         if IsControlJustPressed(0, 38) then
             if visible then closeMenu() else openMenu() end
         end
-
         if visible then
-            -- أسهم وتحكم
             if IsControlJustPressed(0, 172) then -- ↑
                 if submenuOpen then updateSubIndex(-1)
-                else
-                    rootIndex = math.max(0, rootIndex - 1)
-                    send({type="setIndex", index=rootIndex})
-                end
+                else rootIndex = math.max(0, rootIndex - 1); send({type="setIndex", index=rootIndex}) end
             end
             if IsControlJustPressed(0, 173) then -- ↓
                 if submenuOpen then updateSubIndex(1)
-                else
-                    rootIndex = math.min(#ROOT-1, rootIndex + 1)
-                    send({type="setIndex", index=rootIndex})
-                end
+                else rootIndex = math.min(#ROOT-1, rootIndex + 1); send({type="setIndex", index=rootIndex}) end
             end
-            if IsControlJustPressed(0, 174) then -- ←
-                closeSub()
-            end
-            if IsControlJustPressed(0, 175) then -- →
-                if not submenuOpen then openSub() end
-            end
-            if IsControlJustPressed(0, 176) then -- Enter
-                confirm()
-            end
-            if IsControlJustPressed(0, 177) then -- Back
-                closeSub()
-            end
+            if IsControlJustPressed(0, 174) then closeSub() end -- ←
+            if IsControlJustPressed(0, 175) then if not submenuOpen then openSub() end end -- →
+            if IsControlJustPressed(0, 176) then confirm() end -- Enter
+            if IsControlJustPressed(0, 177) then closeSub() end -- Back
         end
     end
 end)
 
--- ============== F2 لتبديل الطيران (إذا Enabled) ==============
+-- F2 لتبديل noclip إذا Enabled
 CreateThread(function()
     while true do
         Wait(0)
-        -- 289 = F2
         if IsControlJustPressed(0, 289) and menuNoclipEnabled then
             noclip = not noclip
             local ped = PlayerPedId()
@@ -444,15 +409,14 @@ CreateThread(function()
                 FreezeEntityPosition(ped, false)
                 SetEntityVelocity(ped, 0.0, 0.0, 0.0)
             end
-            -- تحديث حالة العنصر داخل Animation
-            if submenuOpen and ROOT[rootIndex+1].label == "Animation" then
+            if submenuOpen and ROOT[rootIndex+1].label == "Menu" then
                 refreshSubmenuUI()
             end
         end
     end
 end)
 
--- ============== تنظيف عند إيقاف المورد ==============
+-- تنظيف
 AddEventHandler("onResourceStop", function(resName)
     if GetCurrentResourceName() ~= resName then return end
     ClearDetach()
