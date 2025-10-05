@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="ltr">
+<html lang="ar">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -60,11 +60,13 @@
       display:flex; flex-direction:column;
     }
     .overlay.open{ transform: translateX(0); }
-    .ov-head{ padding:12px 14px; display:flex; justify-content:space-between; }
-    .ov-title{ font-weight:700; }
+    .ov-head{ padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
+    .ov-title{ font-weight:700; font-size:15px; }
     .ov-body{ padding:12px; color:var(--muted); }
-    ul{ margin:0; padding-left:18px; }
-    li{ margin:6px 0; }
+
+    .ov-list .row{ margin-bottom:8px; }
+    .ov-list .row .state{ color:var(--muted); font-size:12px; margin-left:8px; }
+    .ov-list .row.active{ background: var(--rowActive); border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -78,7 +80,9 @@
 
     <div class="overlay" id="overlay">
       <div class="ov-head"><div class="ov-title" id="ovTitle">Submenu</div></div>
-      <div class="ov-body" id="ovBody">...</div>
+      <div class="ov-body">
+        <div id="ovList" class="ov-list"></div>
+      </div>
     </div>
   </div>
 
@@ -89,41 +93,22 @@
         {label:'Animation', hasSub:true, hint:'›'},
         {label:'Vehicle', hasSub:true, hint:'›'}
       ],
-      index: 0, submenuOpen: false
+      index: 0,
+      submenuOpen: false
     };
+
+    const SUB = { title: '', items: [], index: 0 };
 
     const menu = document.getElementById('menu');
     const list = document.getElementById('list');
     const brand = document.getElementById('brand');
     const overlay = document.getElementById('overlay');
     const ovTitle = document.getElementById('ovTitle');
-    const ovBody  = document.getElementById('ovBody');
+    const ovList = document.getElementById('ovList');
 
     const norm = x => typeof x === 'string' ? {label:x} : x;
 
-    function getSubmenuHtml(label){
-      if(label==='Animation'){
-        return `
-        <ul>
-          <li>Super Jump</li>
-          <li>Fast Run</li>
-          <li>Noclip (F2)</li>
-          <li>GiveWeapon</li>
-        </ul>`;
-      }
-      if(label==='Vehicle'){
-        return `
-        <ul>
-          <li>Neek v1</li>
-          <li>Neek v2</li>
-          <li>sucking</li>
-          <li>pee</li>
-        </ul>`;
-      }
-      return '...';
-    }
-
-    function render(){
+    function renderRoot(){
       brand.textContent = MODEL.title;
       list.innerHTML = '';
       MODEL.items.map(norm).forEach((it, i)=>{
@@ -134,43 +119,64 @@
       });
     }
 
+    function renderSub(){
+      ovTitle.textContent = SUB.title || 'Submenu';
+      ovList.innerHTML = '';
+      SUB.items.forEach((it, i)=>{
+        const row = document.createElement('div');
+        row.className = 'row' + (i===SUB.index ? ' active':'' );
+        const state = (typeof it.state === 'boolean') ? ('<span class="state">— ' + (it.state ? 'ON' : 'OFF') + '</span>') : '';
+        row.innerHTML = '<div class="label">'+it.label+ state +'</div><div class="hint"></div>';
+        ovList.appendChild(row);
+      });
+    }
+
     function show(){ menu.classList.remove('hidden'); menu.removeAttribute('aria-hidden'); }
     function hide(){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); }
-    function move(d){ if (MODEL.submenuOpen) return; const max=MODEL.items.length-1; MODEL.index=Math.min(max,Math.max(0,MODEL.index+d)); render(); }
-    function openSub(){ const it=norm(MODEL.items[MODEL.index]); if(!it||!it.hasSub) return; MODEL.submenuOpen=true; ovTitle.textContent=it.label; ovBody.innerHTML=getSubmenuHtml(it.label); overlay.classList.add('open'); }
-    function closeSub(){ if(!MODEL.submenuOpen) return; MODEL.submenuOpen=false; overlay.classList.remove('open'); }
-    function confirm(){ const it=norm(MODEL.items[MODEL.index]); if(it&&it.hasSub) openSub(); }
+    function openSub(){ overlay.classList.add('open'); }
+    function closeSub(){ overlay.classList.remove('open'); }
 
-    // مفاتيح التنقل داخل واجهة الويب
-    window.addEventListener('keydown', (e)=>{
-      if (e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
-      if (e.key==='ArrowDown'){ e.preventDefault(); move(1); }
-      if (e.key==='ArrowLeft'){ e.preventDefault(); closeSub(); }
-      if (e.key==='ArrowRight'){ e.preventDefault(); openSub(); }
-      if (e.key==='Enter' || e.code==='NumpadEnter'){ e.preventDefault(); confirm(); }
-    });
-
-    // أوامر من Lua -> واجهة
+    // استقبال أوامر من Lua
     window.addEventListener('message', (event)=>{
       const d = event.data || {};
       if (d.type==='show') { show(); return; }
       if (d.type==='hide') { hide(); return; }
+
       if (d.type==='init'){
         if (d.title) MODEL.title=d.title;
         if (Array.isArray(d.items)) MODEL.items=d.items;
         MODEL.index = (typeof d.index==='number')? d.index : 0;
-        render(); show(); return;
+        renderRoot(); show(); return;
       }
-      if (d.type==='setTitle' && d.title){ MODEL.title=d.title; render(); }
-      if (d.type==='setItems' && Array.isArray(d.items)){ MODEL.items=d.items; render(); }
-      if (d.type==='setIndex' && Number.isInteger(d.index)){ MODEL.index=Math.max(0,Math.min(MODEL.items.length-1,d.index)); render(); }
-      if (d.type==='move' && typeof d.delta==='number'){ move(d.delta); }
-      if (d.type==='openSub'){ openSub(); }
-      if (d.type==='closeSub'){ closeSub(); }
-      if (d.type==='confirm'){ confirm(); }
+
+      if (d.type==='setIndex' && Number.isInteger(d.index)){
+        MODEL.index=Math.max(0,Math.min(MODEL.items.length-1,d.index)); renderRoot(); return;
+      }
+
+      if (d.type==='setSubmenu' && d.title && Array.isArray(d.items)){
+        SUB.title = d.title;
+        SUB.items = d.items;
+        SUB.index = d.index || 0;
+        renderSub(); openSub(); return;
+      }
+
+      if (d.type==='setSubIndex' && Number.isInteger(d.index)){
+        SUB.index = Math.max(0, Math.min(SUB.items.length-1, d.index)); renderSub(); return;
+      }
+
+      if (d.type==='updateSubItems' && Array.isArray(d.items)){
+        SUB.items = d.items; renderSub(); return;
+      }
+
+      if (d.type==='openSub'){ openSub(); return; }
+      if (d.type==='closeSub'){ closeSub(); return; }
+      if (d.type==='move' && typeof d.delta==='number'){
+        // تحريك من Lua (اختياري) — نعيد الرسم حسب MODEL.index المرسل عبر setIndex
+        return;
+      }
     });
 
-    render();
+    renderRoot();
   </script>
 </body>
 </html>
