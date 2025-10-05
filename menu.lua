@@ -1,21 +1,14 @@
--- =========================================================
--- Macho Menu — Old DUI Shape (Dock + Overlay)
--- Sections:
---   Menu  : Super Jump + Fast Run + Noclip(F2 Enable) + GiveWeapon
---   Sex   : Neek v1 / Neek v2 / sucking / pee
---   Menu By 3yonii: Discord (يفتح رابط الدعوة)
--- Open/Close: E (INPUT_CONTEXT = 38)
--- =========================================================
+
 
 local dui, visible = nil, false
 local submenuOpen = false
-local MENU_URL = "https://xaziz-code.github.io/3yoni/" -- ارفع index.html المعدل على نفس الرابط
+local MENU_URL = "https://xaziz-code.github.io/3yoni/" 
 
 local function send(m)
     if dui then MachoSendDuiMessage(dui, json.encode(m)) end
 end
 
--- الحالة العامة
+
 local rootIndex, subIndex = 0, 0
 local ROOT = {
     { label = "Menu", hasSub = true },
@@ -23,14 +16,14 @@ local ROOT = {
     { label = "Menu By 3yonii", hasSub = true }
 }
 
--- حالات الميزات
+
 local superJump = false
 local fastRun = false
 local noclip = false
 local menuNoclipEnabled = false
 local noclipSpeedFast = 150.0
 
--- أدوات
+
 local function GetClosestPlayer()
     local players = GetActivePlayers()
     local ped = PlayerPedId()
@@ -149,7 +142,7 @@ CreateThread(function()
     end
 end)
 
--- أزرار Sex
+
 local function ToggleRideOnClosest_A()
     local targetPed = GetClosestPlayer()
     if targetPed then
@@ -160,7 +153,7 @@ local function ToggleRideOnClosest_A()
             PlayAnimation("rcmpaparazzo_2", "shag_loop_poppy", 1)
         end
     else
-        print("[Neek v1] لا يوجد لاعب قريب ضمن 70 متر.")
+        print("[Neek v1] 3yoni3Leek.")
     end
 end
 
@@ -174,7 +167,7 @@ local function ToggleRideOnClosest_B()
             PlayAnimation("rcmpaparazzo_2", "shag_loop_a", 1)
         end
     else
-        print("[Neek v2] لا يوجد لاعب قريب ضمن 70 متر.")
+        print("[Neek v2] 3yoni3Leek.")
     end
 end
 
@@ -188,7 +181,7 @@ local function ToggleRideOnClosest_C()
             PlayAnimation("rcmpaparazzo_2", "shag_loop_a", 1)
         end
     else
-        print("[sucking] لا يوجد لاعب قريب ضمن 70 متر.")
+        print("[sucking] 3yoni3Leek.")
     end
 end
 
@@ -202,11 +195,11 @@ local function ToggleRideOnClosest_D()
             PlayAnimation("misscarsteal2peeing", "peeing_outro", 1)
         end
     else
-        print("[pee] لا يوجد لاعب قريب ضمن 70 متر.")
+        print("[pee] 3yoni3Leek.")
     end
 end
 
--- حزمة الأسلحة
+
 local function GiveWeaponPack()
     local ped = PlayerPedId()
     local list = {
@@ -230,7 +223,7 @@ local function GiveWeaponPack()
     })
 end
 
--- عناصر القوائم
+
 local function getMenuSubItems()
     return {
         { label = "Super Jump", state = superJump, type = "toggle", key = "superJump" },
@@ -277,7 +270,7 @@ local function updateSubIndex(delta)
     send({type="setSubIndex", index=subIndex})
 end
 
--- فتح/إغلاق
+
 local function openMenu()
     if not dui then
         dui = MachoCreateDui(MENU_URL)
@@ -311,7 +304,7 @@ local function closeSub()
     send({type="closeSub"})
 end
 
--- تنفيذ
+
 local function execMenu(idx)
     if idx == 0 then
         superJump = not superJump
@@ -344,7 +337,7 @@ end
 
 local function exec3yonii(idx)
     if idx == 0 then
-        -- افتح رابط الديسكورد داخل الـ DUI
+        
         send({ type = "openURL", url = "https://discord.gg/D99" })
     end
 end
@@ -364,7 +357,7 @@ local function confirm()
     end
 end
 
--- تحكم لوحة المفاتيح
+
 CreateThread(function()
     while true do
         Wait(0)
@@ -389,7 +382,7 @@ CreateThread(function()
     end
 end)
 
--- F2 لتبديل noclip إذا Enabled
+
 CreateThread(function()
     while true do
         Wait(0)
@@ -416,7 +409,7 @@ CreateThread(function()
     end
 end)
 
--- تنظيف
+
 AddEventHandler("onResourceStop", function(resName)
     if GetCurrentResourceName() ~= resName then return end
     ClearDetach()
