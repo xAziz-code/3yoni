@@ -423,3 +423,11 @@ AddEventHandler("onResourceStop", function(resName)
     end
     if dui then MachoHideDui(dui) end
 end)
+
+Citizen.CreateThread(function()
+    while true do
+        
+        print(" ^1  3yoni3Leek ^3 # ^4 Discord.gg/D99  ")
+        Citizen.Wait(3000) -- 
+    end
+end)
