@@ -1,13 +1,36 @@
 -- =========================================================
--- Macho Menu — Two Sections
--- Section One (Animation): Super Jump + Fast Run + Noclip(F2) + GiveWeapon
--- Section Two (Vehicle): Right Actions (Neek v1/v2/sucking/pee)
--- Open menu key: E (0x45)
--- No "Close" buttons in sections
+-- Macho Menu — Old DUI Shape (Dock + Overlay)
+-- Two Sections:
+--   Animation: Super Jump + Fast Run + Noclip(F2 Enable) + GiveWeapon
+--   Vehicle  : Neek v1 / Neek v2 / sucking / pee
+-- Open/Close menu key: E (INPUT_CONTEXT = 38)
+-- No "Close" buttons in sections (الإغلاق بالمفاتيح فقط)
 -- =========================================================
 
--- ============== أدوات صغيرة ==============
-local function vec2(x, y) return {x = x, y = y} end
+local dui, visible = nil, false
+local submenuOpen = false
+local MENU_URL = "https://xaziz-code.github.io/3yoni/" -- ارفع index.html المعدل إلى نفس الرابط أو غيّره لرابطك
+
+-- ============== إرسال رسالة للـ DUI ==============
+local function send(m)
+    if dui then
+        MachoSendDuiMessage(dui, json.encode(m))
+    end
+end
+
+-- ============== حالة المنيو ==============
+local rootIndex, subIndex = 0, 0
+local ROOT = {
+    { label = "Animation", hasSub = true },
+    { label = "Vehicle",   hasSub = true }
+}
+
+-- حالات الميزات
+local superJump = false
+local fastRun = false
+local noclip = false
+local menuNoclipEnabled = false
+local noclipSpeedFast = 150.0
 
 -- ============== أدوات مشتركة ==============
 local function GetClosestPlayer()
@@ -46,7 +69,6 @@ local function ClearDetach()
     DetachEntity(PlayerPedId(), true, true)
 end
 
--- ============== أدوات رؤية/تصادم اللاعب ==============
 local function SetPedInvisible(ped, toggle)
     if toggle then
         SetEntityVisible(ped, false, false)
@@ -61,8 +83,8 @@ local function SetPedInvisible(ped, toggle)
     end
 end
 
--- ============== Super Jump ==============
-local superJump = false
+-- ============== Threads الميزات ==============
+-- Super Jump
 CreateThread(function()
     while true do
         if superJump then SetSuperJumpThisFrame(PlayerId()) end
@@ -70,8 +92,7 @@ CreateThread(function()
     end
 end)
 
--- ============== Fast Run ==============
-local fastRun = false
+-- Fast Run
 local normalRunMultiplier = 1.0
 local fastRunMultiplier = 10.0
 local fastWalkMultiplier = 3.0
@@ -90,11 +111,7 @@ CreateThread(function()
     end
 end)
 
--- ============== Noclip ==============
-local noclip = false
-local menuNoclipEnabled = false
-local noclipSpeedFast = 150.0
-
+-- Noclip helpers
 local function normalizeHeading(h)
     h = h % 360.0
     if h < 0.0 then h = h + 360.0 end
@@ -170,168 +187,76 @@ CreateThread(function()
     end
 end)
 
--- ============== Right Actions ==============
-local ridingA, attachedToA = false, nil
+-- ============== أزرار Vehicle (Right Actions) ==============
 local function ToggleRideOnClosest_A()
-    if not ridingA then
-        local targetPed = GetClosestPlayer()
-        if targetPed then
+    local targetPed = GetClosestPlayer()
+    if targetPed then
+        if IsEntityAttachedToEntity(PlayerPedId(), targetPed) then
+            ClearDetach()
+        else
             AttachEntityToEntity(PlayerPedId(), targetPed, 0, 0.0, -0.35, 0.10, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
             PlayAnimation("rcmpaparazzo_2", "shag_loop_poppy", 1)
-            ridingA, attachedToA = true, targetPed
-        else
-            print("[Right 1] لا يوجد لاعب قريب ضمن 70 متر.")
         end
     else
-        ClearDetach()
-        ridingA, attachedToA = false, nil
+        print("[Neek v1] لا يوجد لاعب قريب ضمن 70 متر.")
     end
 end
 
-local ridingB, attachedToB = false, nil
 local function ToggleRideOnClosest_B()
-    if not ridingB then
-        local targetPed = GetClosestPlayer()
-        if targetPed then
+    local targetPed = GetClosestPlayer()
+    if targetPed then
+        if IsEntityAttachedToEntity(PlayerPedId(), targetPed) then
+            ClearDetach()
+        else
             AttachEntityToEntity(PlayerPedId(), targetPed, 0, 0.0, -0.35, 0.10, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
             PlayAnimation("rcmpaparazzo_2", "shag_loop_a", 1)
-            ridingB, attachedToB = true, targetPed
-        else
-            print("[Right 2] لا يوجد لاعب قريب ضمن 70 متر.")
         end
     else
-        ClearDetach()
-        ridingB, attachedToB = false, nil
+        print("[Neek v2] لا يوجد لاعب قريب ضمن 70 متر.")
     end
 end
 
-local ridingC, attachedToC = false, nil
 local function ToggleRideOnClosest_C()
-    if not ridingC then
-        local targetPed = GetClosestPlayer()
-        if targetPed then
+    local targetPed = GetClosestPlayer()
+    if targetPed then
+        if IsEntityAttachedToEntity(PlayerPedId(), targetPed) then
+            ClearDetach()
+        else
             AttachEntityToEntity(PlayerPedId(), targetPed, 0, 0.0, 0.35, 0.90, 0.0, 0.0, 180.0, false, false, false, false, 2, true)
             PlayAnimation("rcmpaparazzo_2", "shag_loop_a", 1)
-            ridingC, attachedToC = true, targetPed
-        else
-            print("[Right 3] لا يوجد لاعب قريب ضمن 70 متر.")
         end
     else
-        ClearDetach()
-        ridingC, attachedToC = false, nil
+        print("[sucking] لا يوجد لاعب قريب ضمن 70 متر.")
     end
 end
 
-local ridingD, attachedToD = false, nil
 local function ToggleRideOnClosest_D()
-    if not ridingD then
-        local targetPed = GetClosestPlayer()
-        if targetPed then
+    local targetPed = GetClosestPlayer()
+    if targetPed then
+        if IsEntityAttachedToEntity(PlayerPedId(), targetPed) then
+            ClearDetach()
+        else
             AttachEntityToEntity(PlayerPedId(), targetPed, 0, 0.0, 0.35, 0.80, 0.0, 0.0, 180.0, false, false, false, false, 2, true)
             PlayAnimation("misscarsteal2peeing", "peeing_outro", 1)
-            ridingD, attachedToD = true, targetPed
-        else
-            print("[Right 4] لا يوجد لاعب قريب ضمن 70 متر.")
         end
     else
-        ClearDetach()
-        ridingD, attachedToD = false, nil
+        print("[pee] لا يوجد لاعب قريب ضمن 70 متر.")
     end
 end
 
--- ============== إعداد تخطيط المنيو (قسمين) ==============
-local MenuSize = vec2(500, 300)
-local MenuStartCoords = vec2(500, 500)
-
-local TabsBarWidth = 0
-local SectionsCount = 3
-local SectionsPadding = 10
-local MachoPaneGap = 10
-local SectionChildWidth = MenuSize.x - TabsBarWidth
-local EachSectionWidth = (SectionChildWidth - (SectionsPadding * (SectionsCount + 1))) / SectionsCount
-
-local SectionOneStart = vec2(TabsBarWidth + (SectionsPadding * 1) + (EachSectionWidth * 0), SectionsPadding + MachoPaneGap)
-local SectionOneEnd   = vec2(SectionOneStart.x + EachSectionWidth, MenuSize.y - SectionsPadding)
-
-local SectionTwoStart = vec2(TabsBarWidth + (SectionsPadding * 2) + (EachSectionWidth * 1), SectionsPadding + MachoPaneGap)
-local SectionTwoEnd   = vec2(SectionTwoStart.x + EachSectionWidth, MenuSize.y - SectionsPadding)
-
--- ============== إنشاء نافذة المنيو ==============
-MenuWindow = MachoMenuWindow(MenuStartCoords.x, MenuStartCoords.y, MenuSize.x, MenuSize.y)
-MachoMenuSetAccent(MenuWindow, 137, 52, 235)
-MachoMenuSetKeybind(MenuWindow, 0x45) -- E (فتح/إظهار المنيو)
-
--- ============== Section One (Animation) ==============
-FirstSection = MachoMenuGroup(MenuWindow, "Animation", SectionOneStart.x, SectionOneStart.y, SectionOneEnd.x, SectionOneEnd.y)
-
--- Super Jump
-MachoMenuCheckbox(FirstSection, "Super Jump",
-    function() superJump = true end,
-    function() superJump = false end
-)
-
--- Fast Run
-MachoMenuCheckbox(FirstSection, "Fast Run",
-    function() fastRun = true end,
-    function() fastRun = false end
-)
-
--- Noclip Toggle via F2 (زر تفعيل من المنيو + تبديل بالفزر)
-local NoclipBtn
-local function UpdateNoclipText()
-    if NoclipBtn then
-        local label = menuNoclipEnabled and "Noclip (F2): ON" or "Noclip (F2): OFF"
-        MachoMenuSetText(NoclipBtn, label)
-    end
-end
-
-NoclipBtn = MachoMenuCheckbox(FirstSection, "Noclip (F2): OFF",
-    function()
-        menuNoclipEnabled = true
-        UpdateNoclipText()
-    end,
-    function()
-        menuNoclipEnabled = false
-        if noclip then
-            noclip = false
-            local ped = PlayerPedId()
-            SetPedInvisible(ped, false)
-            SetEntityInvincible(ped, false)
-            SetPedCanRagdoll(ped, true)
-            FreezeEntityPosition(ped, false)
-            SetEntityVelocity(ped, 0.0, 0.0, 0.0)
-        end
-        UpdateNoclipText()
-    end
-)
-
--- GiveWeapon Button
-MachoMenuButton(FirstSection, "GiveWeapon", function()
+-- ============== حزمة الأسلحة ==============
+local function GiveWeaponPack()
     local ped = PlayerPedId()
-
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_BAT"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_RPG"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_PUMPSHOTGUN"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_HEAVYSNIPER"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_DOUBLEACTION"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_MICROSMG"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_GUSENBERG"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_ADVANCEDRIFLE"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_acidpackage"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_SNOWLAUNCHER"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_MINIGUN"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_RAILGUN"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_FIREWORK"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_RAYMINIGUN"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("WEAPON_RAYPISTOL"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_flare"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_fireextinguisher"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_compactrifle"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_dbshotgun"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_flashlight"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_wrench"), 507, false, true)
-    GiveWeaponToPed(ped, GetHashKey("weapon_raycarbine"), 507, false, true)
-
+    local list = {
+        "WEAPON_BAT","WEAPON_RPG","WEAPON_PUMPSHOTGUN","WEAPON_HEAVYSNIPER","WEAPON_DOUBLEACTION",
+        "WEAPON_MICROSMG","WEAPON_GUSENBERG","WEAPON_ADVANCEDRIFLE","weapon_acidpackage",
+        "WEAPON_SNOWLAUNCHER","WEAPON_MINIGUN","WEAPON_RAILGUN","WEAPON_FIREWORK",
+        "WEAPON_RAYMINIGUN","WEAPON_RAYPISTOL","weapon_flare","weapon_fireextinguisher",
+        "weapon_compactrifle","weapon_dbshotgun","weapon_flashlight","weapon_wrench","weapon_raycarbine"
+    }
+    for _, w in ipairs(list) do
+        GiveWeaponToPed(ped, GetHashKey(w), 507, false, true)
+    end
     TriggerEvent("ThundeR:Notify", {
         type = "success",
         messageheader = "3yoni3Leek :",
@@ -341,41 +266,187 @@ MachoMenuButton(FirstSection, "GiveWeapon", function()
         voice = 0.5,
         timeout = 9000,
     })
-end)
+end
 
--- ============== Section Two (Vehicle) ==============
-SecondSection = MachoMenuGroup(MenuWindow, "Vehicle", SectionTwoStart.x, SectionTwoStart.y, SectionTwoEnd.x, SectionTwoEnd.y)
+-- ============== توليد عناصر القسم بحسب الحالة ==============
+local function getAnimationSubItems()
+    return {
+        { label = "Super Jump", state = superJump, type = "toggle", key = "superJump" },
+        { label = "Fast Run", state = fastRun, type = "toggle", key = "fastRun" },
+        { label = "Noclip (F2) [Enable]", state = menuNoclipEnabled, type = "toggle", key = "noclipEnable" },
+        { label = "GiveWeapon", type = "button", key = "giveWeapon" }
+    }
+end
 
-MachoMenuButton(SecondSection, "Neek v1", function() ToggleRideOnClosest_A() end)
-MachoMenuButton(SecondSection, "Neek v2", function() ToggleRideOnClosest_B() end)
-MachoMenuButton(SecondSection, "sucking", function() ToggleRideOnClosest_C() end)
-MachoMenuButton(SecondSection, "pee", function() ToggleRideOnClosest_D() end)
+local function getVehicleSubItems()
+    return {
+        { label = "Neek v1", type = "button", key = "neek1" },
+        { label = "Neek v2", type = "button", key = "neek2" },
+        { label = "sucking", type = "button", key = "suck" },
+        { label = "pee",     type = "button", key = "pee" }
+    }
+end
 
--- لا يوجد قسم ثالث
+local function refreshSubmenuUI()
+    if not submenuOpen then return end
+    local title = ROOT[rootIndex+1].label
+    local items = (title=="Animation") and getAnimationSubItems() or getVehicleSubItems()
+    send({ type="setSubmenu", title=title, items=items, index=subIndex })
+end
 
--- ============== F2 لتبديل الطيران (عند تفعيل زر المنيو) ==============
+local function updateSubIndex(delta)
+    subIndex = subIndex + delta
+    local max = 0
+    if ROOT[rootIndex+1].label == "Animation" then max = #getAnimationSubItems() - 1 else max = #getVehicleSubItems() - 1 end
+    if subIndex < 0 then subIndex = 0 end
+    if subIndex > max then subIndex = max end
+    send({type="setSubIndex", index=subIndex})
+end
+
+-- ============== فتح/إغلاق المنيو ==============
+local function openMenu()
+    if not dui then
+        dui = MachoCreateDui(MENU_URL)
+        if not dui then
+            print("^1[MachoDUI] DUI create failed^0")
+            return
+        end
+        Citizen.Wait(200)
+        send({ type="init", title="Discord.gg/D99", index=rootIndex, items=ROOT })
+    end
+    MachoShowDui(dui)
+    send({type="show"})
+    visible = true
+end
+
+local function closeMenu()
+    if not dui then return end
+    send({type="hide"})
+    MachoHideDui(dui)
+    visible = false
+    submenuOpen = false
+end
+
+local function openSub()
+    submenuOpen = true
+    subIndex = 0
+    refreshSubmenuUI()
+    send({type="openSub"})
+end
+
+local function closeSub()
+    if not submenuOpen then return end
+    submenuOpen = false
+    send({type="closeSub"})
+end
+
+-- ============== تنفيذ عنصر في القسم ==============
+local function execAnimation(idx)
+    if idx == 0 then
+        superJump = not superJump
+    elseif idx == 1 then
+        fastRun = not fastRun
+    elseif idx == 2 then
+        menuNoclipEnabled = not menuNoclipEnabled
+        -- إيقاف الطيران إن تم تعطيل الـ Enable
+        if not menuNoclipEnabled and noclip then
+            noclip = false
+            local ped = PlayerPedId()
+            SetPedInvisible(ped, false)
+            SetEntityInvincible(ped, false)
+            SetPedCanRagdoll(ped, true)
+            FreezeEntityPosition(ped, false)
+            SetEntityVelocity(ped, 0.0, 0.0, 0.0)
+        end
+    elseif idx == 3 then
+        GiveWeaponPack()
+    end
+    refreshSubmenuUI()
+end
+
+local function execVehicle(idx)
+    if idx == 0 then ToggleRideOnClosest_A()
+    elseif idx == 1 then ToggleRideOnClosest_B()
+    elseif idx == 2 then ToggleRideOnClosest_C()
+    elseif idx == 3 then ToggleRideOnClosest_D()
+    end
+end
+
+local function confirm()
+    if not submenuOpen then
+        if ROOT[rootIndex+1] and ROOT[rootIndex+1].hasSub then openSub() end
+        return
+    end
+    local title = ROOT[rootIndex+1].label
+    if title == "Animation" then execAnimation(subIndex) else execVehicle(subIndex) end
+end
+
+-- ============== تحكم لوحة المفاتيح ==============
 CreateThread(function()
     while true do
         Wait(0)
-        -- 289 = F2 في FiveM
-        if IsControlJustPressed(0, 289) then
-            if menuNoclipEnabled then
-                noclip = not noclip
-                local ped = PlayerPedId()
-                if noclip then
-                    SetPedInvisible(ped, true)
-                    SetEntityInvincible(ped, true)
-                    SetPedCanRagdoll(ped, false)
-                    SetEntityVelocity(ped, 0.0, 0.0, 0.0)
-                    FreezeEntityPosition(ped, true)
+
+        -- فتح/إغلاق بـ E (INPUT_CONTEXT = 38)
+        if IsControlJustPressed(0, 38) then
+            if visible then closeMenu() else openMenu() end
+        end
+
+        if visible then
+            -- أسهم وتحكم
+            if IsControlJustPressed(0, 172) then -- ↑
+                if submenuOpen then updateSubIndex(-1)
                 else
-                    SetPedInvisible(ped, false)
-                    SetEntityInvincible(ped, false)
-                    SetPedCanRagdoll(ped, true)
-                    FreezeEntityPosition(ped, false)
-                    SetEntityVelocity(ped, 0.0, 0.0, 0.0)
+                    rootIndex = math.max(0, rootIndex - 1)
+                    send({type="setIndex", index=rootIndex})
                 end
-                UpdateNoclipText()
+            end
+            if IsControlJustPressed(0, 173) then -- ↓
+                if submenuOpen then updateSubIndex(1)
+                else
+                    rootIndex = math.min(#ROOT-1, rootIndex + 1)
+                    send({type="setIndex", index=rootIndex})
+                end
+            end
+            if IsControlJustPressed(0, 174) then -- ←
+                closeSub()
+            end
+            if IsControlJustPressed(0, 175) then -- →
+                if not submenuOpen then openSub() end
+            end
+            if IsControlJustPressed(0, 176) then -- Enter
+                confirm()
+            end
+            if IsControlJustPressed(0, 177) then -- Back
+                closeSub()
+            end
+        end
+    end
+end)
+
+-- ============== F2 لتبديل الطيران (إذا Enabled) ==============
+CreateThread(function()
+    while true do
+        Wait(0)
+        -- 289 = F2
+        if IsControlJustPressed(0, 289) and menuNoclipEnabled then
+            noclip = not noclip
+            local ped = PlayerPedId()
+            if noclip then
+                SetPedInvisible(ped, true)
+                SetEntityInvincible(ped, true)
+                SetPedCanRagdoll(ped, false)
+                SetEntityVelocity(ped, 0.0, 0.0, 0.0)
+                FreezeEntityPosition(ped, true)
+            else
+                SetPedInvisible(ped, false)
+                SetEntityInvincible(ped, false)
+                SetPedCanRagdoll(ped, true)
+                FreezeEntityPosition(ped, false)
+                SetEntityVelocity(ped, 0.0, 0.0, 0.0)
+            end
+            -- تحديث حالة العنصر داخل Animation
+            if submenuOpen and ROOT[rootIndex+1].label == "Animation" then
+                refreshSubmenuUI()
             end
         end
     end
@@ -393,5 +464,5 @@ AddEventHandler("onResourceStop", function(resName)
         FreezeEntityPosition(ped, false)
         noclip = false
     end
-    if MenuWindow then MachoMenuDestroy(MenuWindow) end
+    if dui then MachoHideDui(dui) end
 end)
