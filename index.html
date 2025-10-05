@@ -87,11 +87,13 @@
   </div>
 
   <script>
+    // افتراضي فقط؛ ستأتي العناصر الفعلية من Lua عبر init
     const MODEL = {
       title: 'Discord.gg/D99',
       items: [
-        {label:'Animation', hasSub:true, hint:'›'},
-        {label:'Vehicle', hasSub:true, hint:'›'}
+        {label:'Menu', hasSub:true, hint:'›'},
+        {label:'Sex', hasSub:true, hint:'›'},
+        {label:'Menu By 3yonii', hasSub:true, hint:'›'}
       ],
       index: 0,
       submenuOpen: false
@@ -170,8 +172,10 @@
 
       if (d.type==='openSub'){ openSub(); return; }
       if (d.type==='closeSub'){ closeSub(); return; }
-      if (d.type==='move' && typeof d.delta==='number'){
-        // تحريك من Lua (اختياري) — نعيد الرسم حسب MODEL.index المرسل عبر setIndex
+
+      // فتح الروابط الخارجية
+      if (d.type === 'openURL' && typeof d.url === 'string'){
+        try { window.open(d.url, '_blank'); } catch(e){}
         return;
       }
     });
